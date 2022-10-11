@@ -1,31 +1,31 @@
 {
-  "name": "njs-tooling",
-  "version": "0.0.1",
-  "description": "A collection to tools for writing njs scripts for nginx",
-  "main": "src/transpilation/transpiler.mjs",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "docs": "npx jsdoc -c jsdoc.config.json src/transpilation/transpiler.mjs && open out/index.html"
-  },
-  "author": "",
-  "bin": {
-    "njs-bundle": "./src/transpilation/cli.mjs"
-  },
-  "license": "ISC",
-  "devDependencies": {
-    "jsdoc": "^3.6.11",
-    "prettier": "^2.7.1"
-  },
-  "dependencies": {
-    "@rollup/plugin-babel": "^5.3.1",
-    "@rollup/plugin-commonjs": "^22.0.2",
-    "@rollup/plugin-node-resolve": "^13.3.0",
-    "babel-preset-njs": "^0.2.1",
-    "builtin-modules": "^3.3.0",
-    "chalk": "^5.0.1",
-    "commander": "^9.4.0",
-    "esprima": "^4.0.1",
-    "rollup": "^2.78.1",
-    "rollup-plugin-node-polyfills": "^0.2.1"
-  }
+    "name": "njs-tooling",
+    "version": "0.0.1",
+    "description": "A collection to tools for writing njs scripts for nginx",
+    "main": "src/cli.mjs",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "docs": "npx jsdoc -c jsdoc.config.json src/transpilation/transpiler.mjs && open out/index.html"
+    },
+    "author": "",
+    "bin": {
+        "njs-bundle": "./src/cli.mjs"
+    },
+    "license": "ISC",
+    "devDependencies": {
+        "jsdoc": "^3.6.11",
+        "prettier": "^2.7.1"
+    },
+    "dependencies": {
+        "@rollup/plugin-babel": "^5.3.1",
+        "@rollup/plugin-commonjs": "^22.0.2",
+        "@rollup/plugin-node-resolve": "^13.3.0",
+        "babel-preset-njs": "^0.2.1",
+        "builtin-modules": "^3.3.0",
+        "chalk": "^5.0.1",
+        "commander": "^9.4.0",
+        "esprima": "^4.0.1",
+        "rollup": "^2.78.1",
+        "rollup-plugin-node-polyfills": "^0.2.1"
+    }
 }

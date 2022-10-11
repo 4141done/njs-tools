@@ -2,16 +2,14 @@ import { rollup } from "rollup";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import nodePolyfills from "rollup-plugin-node-polyfills";
-import { babel, getBabelOutputPlugin } from "@rollup/plugin-babel";
+import { babel } from "@rollup/plugin-babel";
 import * as fs from "fs/promises";
 import * as path from "path";
 
 // The below is necessary because `__filename`
 // and `__dirname` are not available in .mjs context
-import { fileURLToPath } from "url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, "..");
+import { dirname as __dirname, filename as __filename } from '../common.mjs';
+
 
 // https://blog.openreplay.com/the-ultimate-guide-to-getting-started-with-the-rollup-js-javascript-bundler
 
@@ -33,7 +31,7 @@ const TRANSPILE_MODES = {
   ALL: "ALL",
 };
 
-const USER_SCRIPTS_GLOB = "./src/*";
+const USER_SCRIPTS_GLOB = "./*";
 const POLYFILLS_REGEX = /\/core-js\//;
 
 const BASE_ROLLUP_INPUT_OPTIONS = {
@@ -81,7 +79,7 @@ async function bundle(input, options = {}) {
 
   const outputOptions = {
     dir: outputDir,
-    sourcemap: true
+    sourcemap: true,
   };
 
   return build(inputOptions, outputOptions, transforms);
@@ -95,7 +93,7 @@ async function bundle(input, options = {}) {
  * @param {('NONE'|'DEPENDENCIES'|'ALL')} transpileMode - An enum from `TRANSPILE_MODES` (default `'DEPENDENCIES'`)
  * @returns {Array} An array of rollup plugins.
  */
-function configureBabelForTranspileMode(transpileMode) {
+function configureBabelForTranspileMode(transpileMode, files) {
   let babelPluginWithConfig;
   const defaultConfig = {
     babelHelpers: "bundled",
@@ -103,24 +101,16 @@ function configureBabelForTranspileMode(transpileMode) {
     configFile: path.resolve(__dirname, "babel.config.json"),
   };
 
-  switch (transpileMode) {
-    case TRANSPILE_MODES.dependencies:
-      babelPluginWithConfig = babel(defaultConfig);
-      break;
-
-    case TRANSPILE_MODES.none:
-      babelPluginWithConfig = null;
-      break;
-
-    case TRANSPILE_MODES.all:
-      babelPluginWithConfig = babel(
-        Object.assign({ exclude: [POLYFILLS_REGEX] }, defaultConfig)
-      );
-      break;
-
-    default:
-      babelPluginWithConfig = babel(defaultConfig);
-      break;
+  if (transpileMode === TRANSPILE_MODES.DEPENDENCIES) {
+    babelPluginWithConfig = babel(defaultConfig);
+  } else if (transpileMode === TRANSPILE_MODES.NONE) {
+    babelPluginWithConfig = null;
+  } else if (transpileMode === TRANSPILE_MODES.ALL) {
+    babelPluginWithConfig = babel(
+      Object.assign({ exclude: [POLYFILLS_REGEX] }, defaultConfig)
+    );
+  } else {
+    throw `Unknown transpile mode ${transpileMode}`;
   }
 
   return babelPluginWithConfig;
@@ -145,21 +135,26 @@ async function build(inputOptions, outputOptions, transforms) {
     // Each transform should return just the modified source code.
     // Modifying the chunk will not do anything as the chunk
     // is a copy of the original chunk provided for reference
-    const transformChain = transforms.concat([(code, chunk) => {
-      if (chunk.exports.includes("default")) {
-        return code.replace(
-          /export \{ (.+) as default \};/,
-          "export default $1;"
-        );
-      }
+    const transformChain = transforms.concat([
+      (code, chunk) => {
+        if (chunk.exports.includes("default")) {
+          return code.replace(
+            /export \{ (.+) as default \};/,
+            "export default $1;"
+          );
+        }
 
-      return code;
-    }]);
+        return code;
+      },
+    ]);
 
     const finalOutput = output.map((chunk) => {
       // Use a copied version so that transforms don't mess with the chunk itself
       const chunkCopy = Object.assign({}, chunk);
-      const modifiedCode = transformChain.reduce((code, fn) => fn(code, chunkCopy), chunkCopy.code);
+      const modifiedCode = transformChain.reduce(
+        (code, fn) => fn(code, chunkCopy),
+        chunkCopy.code
+      );
 
       // check on filename and contains
       // let modifiedCode = chunk.code;
@@ -174,7 +169,7 @@ async function build(inputOptions, outputOptions, transforms) {
       // }
 
       return Object.assign(chunk, {
-        code: modifiedCode
+        code: modifiedCode,
       });
     });
 

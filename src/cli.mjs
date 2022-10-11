@@ -8,12 +8,15 @@ import {
   bundle as createBundle,
   TRANSPILE_MODES,
   write_outputs,
-} from "./transpiler.mjs";
-import { genCompatibilityReport } from "./njs-compatibility.mjs";
-
-import * as fs from "fs/promises";
+} from "./transpilation/transpiler.mjs";
+import { genCompatibilityReport } from "./transpilation/njs-compatibility.mjs";
+// TODO: This is generating a warning.  Either suppress the warning of do this differently
+//       before release
+import packageJson from "../package.json" assert { type: "json" };
 import * as path from "path";
 import chalk from "chalk";
+
+const { version } = packageJson;
 
 // For CLI argument/parameter parsing
 import { Command, Option } from "commander";
@@ -43,30 +46,34 @@ const compatibilityCheckOption = new Option(
   "generates an advisory compatibility report for the code in given <filepath> with the njs engine"
 );
 
+// TODO: Either add an option for explicit glob for src files, or automatically assemble the exclude regex based on the
+// files passed in, or probably best - both
 program
   .name("njs-bundle")
   .usage(
     "filepath(s) [options] \n\n  " +
-      chalk.blue("example>") +
-      "\n    njs-bundle myfile.mjs anotherfile.mjs -t -c"
+    chalk.blue("example>") +
+    "\n    njs-bundle myfile.mjs anotherfile.mjs -t -c"
+  )
+  .version(version)
+  .argument(
+    "<filepaths...>",
+    "filepath(s) to bundle seperated by spaces. Ex: 'njs-bundle file1.js file2.js'. Each filepath will be its own bundle"
   )
   .addOption(transpileModeOption)
   .addOption(outputDirOption)
   .addOption(transformsFileOption)
-  .addOption(compatibilityCheckOption);
+  .addOption(compatibilityCheckOption)
+  .showHelpAfterError();
 
 program.parse();
 
 const files = program.args;
 console.log("Processing files: ", files);
-// TODO: Commander should allow me to require at least one arg?
-if (files.length === 0)
-  throw "must specify at least one file.  Run --help for details";
 
 const { transpile, outputDir, transformsFile, checkCompat } = program.opts();
-
 const transforms = await buildTransformsChain(transformsFile);
-const bundle = await doBundleAndTranspile(files, outputDir, transforms);
+const bundle = await doBundleAndTranspile(files, outputDir, { transforms });
 
 if (checkCompat) {
   for (let chunk of bundle) {
@@ -97,6 +104,7 @@ async function doBundleAndTranspile(
 }
 
 async function buildTransformsChain(transformsFile) {
+  console.log("transforms agiant", transformsFile);
   if (!transformsFile) return [];
 
   const transformsModule = await import(

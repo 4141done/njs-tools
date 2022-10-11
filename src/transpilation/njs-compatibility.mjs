@@ -51,9 +51,8 @@ function _normalizeRegexNode(node) {
     if (_isRegexLiteral(newExpFirstArg)) {
       regexp = newExpFirstArg.raw;
     } else if (_isJSLiteral(newExpFirstArg)) {
-      regexp = `/${newExpFirstArg.value}/${
-        newExpFlagsArg ? newExpFlagsArg : ""
-      }`;
+      regexp = `/${newExpFirstArg.value}/${newExpFlagsArg ? newExpFlagsArg : ""
+        }`;
     }
   }
 
@@ -66,6 +65,7 @@ function _normalizeRegexNode(node) {
 
 // TODO: write to file an option
 // TODO: organize better and colorize with chalk
+// Export report as a json structure and let the CLI handle rendering it
 function _generateReport(results, filepath) {
   console.log(chalk.blue("CODE COMPATIBILITY REPORT:"));
   console.log(
@@ -95,9 +95,9 @@ function _generateReport(results, filepath) {
   );
   console.log(
     chalk.red("Note:") +
-      " Compatibility report is for reference only and should\n" +
-      "be a guide to check for areas that may not be compatible.\n" +
-      "Compatibility should be confirmed by testing against your use case."
+    " Compatibility report is for reference only and should\n" +
+    "be a guide to check for areas that may not be compatible.\n" +
+    "Compatibility should be confirmed by testing against your use case."
   );
   console.log(
     "----------------------------------------------------------------"
