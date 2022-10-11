@@ -4,7 +4,7 @@
     "description": "A collection to tools for writing njs scripts for nginx",
     "main": "src/cli.mjs",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "NODE_OPTIONS=--experimental-vm-modules jest",
         "docs": "npx jsdoc -c jsdoc.config.json src/transpilation/transpiler.mjs && open out/index.html"
     },
     "author": "",
@@ -13,7 +13,9 @@
     },
     "license": "ISC",
     "devDependencies": {
+        "jest": "^29.1.2",
         "jsdoc": "^3.6.11",
+        "mock-fs": "^5.1.4",
         "prettier": "^2.7.1"
     },
     "dependencies": {
