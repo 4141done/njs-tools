@@ -9,7 +9,6 @@ import {
   TRANSPILE_MODES,
   write_outputs,
 } from "./transpilation/transpiler.mjs";
-import { genCompatibilityReport } from "./transpilation/njs-compatibility.mjs";
 // TODO: This is generating a warning.  Either suppress the warning of do this differently
 //       before release
 import packageJson from "../package.json" assert { type: "json" };
@@ -41,11 +40,6 @@ const transformsFileOption = new Option(
   "file containing an array of javascript functions to modify bundled code"
 );
 
-const compatibilityCheckOption = new Option(
-  "-c, --check-compat",
-  "generates an advisory compatibility report for the code in given <filepath> with the njs engine"
-);
-
 // TODO: Either add an option for explicit glob for src files, or automatically assemble the exclude regex based on the
 // files passed in, or probably best - both
 program
@@ -63,7 +57,6 @@ program
   .addOption(transpileModeOption)
   .addOption(outputDirOption)
   .addOption(transformsFileOption)
-  .addOption(compatibilityCheckOption)
   .showHelpAfterError();
 
 program.parse();
@@ -74,13 +67,6 @@ console.log("Processing files: ", files);
 const { transpile, outputDir, transformsFile, checkCompat } = program.opts();
 const transforms = await buildTransformsChain(transformsFile);
 const bundle = await doBundleAndTranspile(files, outputDir, { transforms });
-
-if (checkCompat) {
-  for (let chunk of bundle) {
-    console.log(chunk.facadeModuleId);
-    genCompatibilityReport(chunk.code, chunk.facadeModuleId);
-  }
-}
 
 await write_outputs(bundle, outputDir);
 console.log(`🐳🐳 Bundled files written to ${outputDir} 🐳🐳`);

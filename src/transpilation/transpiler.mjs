@@ -8,7 +8,8 @@ import * as path from "path";
 
 // The below is necessary because `__filename`
 // and `__dirname` are not available in .mjs context
-import { dirname as __dirname, filename as __filename } from '../common.mjs';
+import { dirname, filename } from '../common.mjs';
+const [__dirname, __filename] = [dirname(), filename()];
 
 
 // https://blog.openreplay.com/the-ultimate-guide-to-getting-started-with-the-rollup-js-javascript-bundler
@@ -98,7 +99,7 @@ function configureBabelForTranspileMode(transpileMode, files) {
   const defaultConfig = {
     babelHelpers: "bundled",
     exclude: [USER_SCRIPTS_GLOB, POLYFILLS_REGEX],
-    configFile: path.resolve(__dirname, "babel.config.json"),
+    configFile: path.resolve(__dirname, "transpilation/babel.config.json"),
   };
 
   if (transpileMode === TRANSPILE_MODES.DEPENDENCIES) {
