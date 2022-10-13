@@ -5,12 +5,12 @@ import nodePolyfills from "rollup-plugin-node-polyfills";
 import { babel } from "@rollup/plugin-babel";
 import * as fs from "fs/promises";
 import * as path from "path";
+import babelPreset from "babel-preset-njs";
 
 // The below is necessary because `__filename`
 // and `__dirname` are not available in .mjs context
-import { dirname, filename } from '../common.mjs';
+import { dirname, filename } from "../common.mjs";
 const [__dirname, __filename] = [dirname(), filename()];
-
 
 // https://blog.openreplay.com/the-ultimate-guide-to-getting-started-with-the-rollup-js-javascript-bundler
 
@@ -32,8 +32,10 @@ const TRANSPILE_MODES = {
   ALL: "ALL",
 };
 
-const USER_SCRIPTS_GLOB = "./*";
+const BUILD_DIR_DEFAULT = "_build";
+const USER_SCRIPTS_GLOB_DEFAULT = ["/src/**/*.?(m)js"];
 const POLYFILLS_REGEX = /\/core-js\//;
+const NON_JS_FILE_TYPES_REGEX = /^[^.]+$|\.(?!(js|mjs|jsx|ts)$)([^.]+$)/;
 
 const BASE_ROLLUP_INPUT_OPTIONS = {
   // Place things provided by njs here that may clash with
@@ -59,16 +61,22 @@ const BASE_ROLLUP_INPUT_OPTIONS = {
  * @param {Array}  options.appendPlugins - An array of rollup plugins. These plugins will be added AFTER the base set of plugins for the transpile which are [@rollup/plugin-commonjs, rollup-plugin-node-polyfills, @rollup/plugin-node-resolve, @rollup/plugin-babel (if transpiling)]
  * @param {Array}  options.outputDir - The path of the directory to put the js bundles
  * @param {('NONE'|'DEPENDENCIES'|'ALL')} options.transpileMode - An enum from `TRANSPILE_MODES` (default `'DEPENDENCIES'`)
+ * @param {Array} options.transpileIgnores - An array of patterns (regex or picomatch) for files to ignore. See https://www.npmjs.com/package/@rollup/plugin-babel#user-content-exclude
  * @returns {Promise} Promise object has an array with the final bundled code
  */
 async function bundle(input, options = {}) {
   console.log(`Bundling ${input} with options: `, options);
   const appendPlugins = options.appendPlugins || [];
   const transpileMode = options.transpileMode || TRANSPILE_MODES.DEPENDENCIES;
-  const outputDir = options.outputDir || "_build";
+  const outputDir = options.outputDir || BUILD_DIR_DEFAULT;
   const transforms = options.transforms || [];
+  const transpileIgnores =
+    options.transpileIgnores || USER_SCRIPTS_GLOB_DEFAULT;
 
-  const babelPlugin = configureBabelForTranspileMode(transpileMode);
+  const babelPlugin = await configureBabelForTranspileMode(
+    transpileMode,
+    transpileIgnores
+  );
   const inputPlugins = BASE_ROLLUP_INPUT_OPTIONS.plugins
     .concat(babelPlugin ? [babelPlugin] : [])
     .concat(appendPlugins);
@@ -94,12 +102,16 @@ async function bundle(input, options = {}) {
  * @param {('NONE'|'DEPENDENCIES'|'ALL')} transpileMode - An enum from `TRANSPILE_MODES` (default `'DEPENDENCIES'`)
  * @returns {Array} An array of rollup plugins.
  */
-function configureBabelForTranspileMode(transpileMode, files) {
+async function configureBabelForTranspileMode(transpileMode, transpileIgnores) {
   let babelPluginWithConfig;
   const defaultConfig = {
     babelHelpers: "bundled",
-    exclude: [USER_SCRIPTS_GLOB, POLYFILLS_REGEX],
-    configFile: path.resolve(__dirname, "transpilation/babel.config.json"),
+    extensions: [".js", ".jsx", ".es6", ".es", ".mjs"], // this is same as default
+    // TODO: automatically exclude the `node_modules/core-js` directory from being transpiled
+    // in case the user adds polyfills.  If they use a different lib we can have them
+    // pass it in with the ignore flag
+    exclude: [].concat(transpileIgnores),
+    presets: [babelPreset],
   };
 
   if (transpileMode === TRANSPILE_MODES.DEPENDENCIES) {
@@ -157,18 +169,6 @@ async function build(inputOptions, outputOptions, transforms) {
         chunkCopy.code
       );
 
-      // check on filename and contains
-      // let modifiedCode = chunk.code;
-      // if (chunk.code.includes('function slug(')) {
-      //   modifiedCode = modifiedCode.replace('function slug(', 'function slugFn(');
-      // }
-      // if (chunk.exports.includes("default")) {
-      //   modifiedCode = modifiedCode.replace(
-      //     /export \{ (.+) as default \};/,
-      //     "export default $1;"
-      //   );
-      // }
-
       return Object.assign(chunk, {
         code: modifiedCode,
       });
@@ -177,7 +177,6 @@ async function build(inputOptions, outputOptions, transforms) {
     await bundle.close();
     return Promise.resolve(finalOutput);
   } catch (error) {
-    console.log(error);
     return Promise.reject(error);
   }
 }
@@ -187,7 +186,7 @@ async function build(inputOptions, outputOptions, transforms) {
  * @param {Object} bundle - The output options as expected by [rollup output]{@link https://rollupjs.org/guide/en/#outputdir}
  * @returns {number} An array of rollup plugins.
  */
-async function write_outputs(output, folder = "_build") {
+async function write_outputs(output, folder = BUILD_DIR_DEFAULT) {
   await fs.mkdir(folder, { recursive: true });
 
   for (const bundle of output) {

@@ -1,4 +1,0 @@
-{
-  "presets": ["babel-preset-njs"],
-  "plugins": ["@babel/plugin-transform-block-scoping"]
-}

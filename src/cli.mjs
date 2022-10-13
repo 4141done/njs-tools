@@ -40,14 +40,19 @@ const transformsFileOption = new Option(
   "file containing an array of javascript functions to modify bundled code"
 );
 
+const transpileIgnoreOption = new Option(
+  "-i, --transpile-ignore <glob>",
+  "a glob pattern indicating patterns to ignore when transpiling in DEPENDENCIES mode (default)"
+).default("");
+
 // TODO: Either add an option for explicit glob for src files, or automatically assemble the exclude regex based on the
 // files passed in, or probably best - both
 program
   .name("njs-bundle")
   .usage(
     "filepath(s) [options] \n\n  " +
-    chalk.blue("example>") +
-    "\n    njs-bundle myfile.mjs anotherfile.mjs -t -c"
+      chalk.blue("example>") +
+      "\n    njs-bundle myfile.mjs anotherfile.mjs -t -c"
   )
   .version(version)
   .argument(
@@ -56,6 +61,7 @@ program
   )
   .addOption(transpileModeOption)
   .addOption(outputDirOption)
+  .addOption(transpileIgnoreOption)
   .addOption(transformsFileOption)
   .showHelpAfterError();
 
@@ -64,9 +70,13 @@ program.parse();
 const files = program.args;
 console.log("Processing files: ", files);
 
-const { transpile, outputDir, transformsFile, checkCompat } = program.opts();
+const { transpile, outputDir, transformsFile, transpileIgnore } =
+  program.opts();
 const transforms = await buildTransformsChain(transformsFile);
-const bundle = await doBundleAndTranspile(files, outputDir, { transforms });
+const bundle = await doBundleAndTranspile(files, outputDir, {
+  transforms,
+  transpileIgnore: [transpileIgnore].flat(),
+});
 
 await write_outputs(bundle, outputDir);
 console.log(`🐳🐳 Bundled files written to ${outputDir} 🐳🐳`);
@@ -74,13 +84,14 @@ console.log(`🐳🐳 Bundled files written to ${outputDir} 🐳🐳`);
 async function doBundleAndTranspile(
   files,
   outputDir,
-  { transforms: transforms }
+  { transforms, transpileIgnore }
 ) {
   const bundles = files.map(async (file) => {
     const [b] = await createBundle(file, {
       transpileMode: transpile,
       outputDir: outputDir,
       transforms: transforms,
+      transpileIgnoreGlob: transpileIgnore,
     });
 
     return b;
