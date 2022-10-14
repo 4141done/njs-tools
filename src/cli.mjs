@@ -27,7 +27,7 @@ const transpileModeOption = new Option(
   "transpile while bundling"
 )
   .choices(Object.keys(TRANSPILE_MODES))
-  .preset(TRANSPILE_MODES.DEPENDENCIES)
+  .preset(TRANSPILE_MODES.SCOPED)
   .default(TRANSPILE_MODES.NONE);
 
 const outputDirOption = new Option(
@@ -42,7 +42,7 @@ const transformsFileOption = new Option(
 
 const transpileIgnoreOption = new Option(
   "-i, --transpile-ignore <glob>",
-  "a glob pattern indicating patterns to ignore when transpiling in DEPENDENCIES mode (default)"
+  "a glob pattern indicating patterns to ignore when transpiling in SCOPED mode (default)"
 ).default("");
 
 // TODO: Either add an option for explicit glob for src files, or automatically assemble the exclude regex based on the

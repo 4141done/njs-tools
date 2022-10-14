@@ -12,10 +12,10 @@ import babelPreset from "babel-preset-njs";
 import { dirname, filename } from "../common.mjs";
 const [__dirname, __filename] = [dirname(), filename()];
 
-// https://blog.openreplay.com/the-ultimate-guide-to-getting-started-with-the-rollup-js-javascript-bundler
-
 /**
  * @module Transpiler
+ * Core module for transpiling and bundling code.
+ * See the `bundle` function for all options.
  */
 
 /**
@@ -27,13 +27,13 @@ const TRANSPILE_MODES = {
   /** Script files will not be transpiled */
   NONE: "NONE",
   /**  Only node dependencies are transpiled.  This is the default */
-  DEPENDENCIES: "DEPENDENCIES",
+  SCOPED: "SCOPED",
   /** All files are transpiled except polyfills */
   ALL: "ALL",
 };
 
 const BUILD_DIR_DEFAULT = "_build";
-const USER_SCRIPTS_GLOB_DEFAULT = ["/src/**/*.?(m)js"];
+const USER_SCRIPTS_GLOB_DEFAULT = ["**/src/**/*.?(m)js"];
 const POLYFILLS_REGEX = /\/core-js\//;
 const NON_JS_FILE_TYPES_REGEX = /^[^.]+$|\.(?!(js|mjs|jsx|ts)$)([^.]+$)/;
 
@@ -60,14 +60,14 @@ const BASE_ROLLUP_INPUT_OPTIONS = {
  * @param {Object} options - options for the bundle
  * @param {Array}  options.appendPlugins - An array of rollup plugins. These plugins will be added AFTER the base set of plugins for the transpile which are [@rollup/plugin-commonjs, rollup-plugin-node-polyfills, @rollup/plugin-node-resolve, @rollup/plugin-babel (if transpiling)]
  * @param {Array}  options.outputDir - The path of the directory to put the js bundles
- * @param {('NONE'|'DEPENDENCIES'|'ALL')} options.transpileMode - An enum from `TRANSPILE_MODES` (default `'DEPENDENCIES'`)
+ * @param {('NONE'|'SCOPED'|'ALL')} options.transpileMode - An enum from `TRANSPILE_MODES` (default `'SCOPED'`)
  * @param {Array} options.transpileIgnores - An array of patterns (regex or picomatch) for files to ignore. See https://www.npmjs.com/package/@rollup/plugin-babel#user-content-exclude
  * @returns {Promise} Promise object has an array with the final bundled code
  */
 async function bundle(input, options = {}) {
   console.log(`Bundling ${input} with options: `, options);
   const appendPlugins = options.appendPlugins || [];
-  const transpileMode = options.transpileMode || TRANSPILE_MODES.DEPENDENCIES;
+  const transpileMode = options.transpileMode || TRANSPILE_MODES.SCOPED;
   const outputDir = options.outputDir || BUILD_DIR_DEFAULT;
   const transforms = options.transforms || [];
   const transpileIgnores =
@@ -99,7 +99,7 @@ async function bundle(input, options = {}) {
  * babel plugin configuration for the chosen transpilation mode.
  * @private
  * @param {Array}  plugins - An array of rollup plugins.
- * @param {('NONE'|'DEPENDENCIES'|'ALL')} transpileMode - An enum from `TRANSPILE_MODES` (default `'DEPENDENCIES'`)
+ * @param {('NONE'|'SCOPED'|'ALL')} transpileMode - An enum from `TRANSPILE_MODES` (default `'SCOPED'`)
  * @returns {Array} An array of rollup plugins.
  */
 async function configureBabelForTranspileMode(transpileMode, transpileIgnores) {
@@ -114,7 +114,7 @@ async function configureBabelForTranspileMode(transpileMode, transpileIgnores) {
     presets: [babelPreset],
   };
 
-  if (transpileMode === TRANSPILE_MODES.DEPENDENCIES) {
+  if (transpileMode === TRANSPILE_MODES.SCOPED) {
     babelPluginWithConfig = babel(defaultConfig);
   } else if (transpileMode === TRANSPILE_MODES.NONE) {
     babelPluginWithConfig = null;

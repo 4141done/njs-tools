@@ -16,12 +16,12 @@ import path from "path";
 const TEST_FILES_DIR = "./test/support/tmp";
 
 /**
- * Provides a file path that is in the test directory
+ * Provides a file or directory path that is in the test directory
  * @example
- * testFile("main.mjs");
- * @param {string} relativeFilepath - some file path ending in the filename
+ * testPath("main.mjs");
+ * @param {string} relativeFilepath - some file path
  */
-export function testFile(relativeFilepath) {
+export function testPath(relativeFilepath) {
   return path.join(TEST_FILES_DIR, relativeFilepath);
 }
 
@@ -31,7 +31,14 @@ export function testFile(relativeFilepath) {
  */
 export async function restoreTestDir() {
   await fs.mkdir(TEST_FILES_DIR, { recursive: true });
-  for (const file of await fs.readdir(TEST_FILES_DIR)) {
-    await fs.unlink(path.join(TEST_FILES_DIR, file));
+  for (const item of await fs.readdir(TEST_FILES_DIR)) {
+    const itemPath = path.join(TEST_FILES_DIR, item);
+    const stat = await fs.stat(itemPath);
+
+    if (stat.isDirectory()) {
+      await fs.rm(itemPath, { recursive: true });
+    } else {
+      await fs.unlink(itemPath);
+    }
   }
 }
